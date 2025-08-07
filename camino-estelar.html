@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camino Estelar - Plataformas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+        #game-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            padding: 2rem;
+            box-sizing: border-box;
+            text-align: left;
+        }
+        #speed-display, #message-display {
+            font-size: 1.5rem;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        .title {
+            font-size: 5rem;
+            font-weight: 700;
+            color: #00ffff;
+            text-shadow: 0 0 15px #00ffff, 0 0 25px #00ffff;
+            margin-bottom: 2rem;
+        }
+        .button {
+            font-size: 1.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 2px;
+            box-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+        .button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #00ffff, 0 0 30px #ff00ff;
+        }
+        .instructions {
+              font-size: 1rem;
+              color: #ccc;
+              margin-top: 3rem;
+              background-color: rgba(0,0,0,0.5);
+              padding: 1rem;
+              border-radius: 8px;
+              max-width: 400px;
+        }
+        .instructions p { margin: 0.5rem 0; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="menu-screen" class="screen">
+        <h1 class="title">CAMINO ESTELAR</h1>
+        <div>
+            <button id="start-level-1-button" class="button">Nivel 1</button>
+            <button id="start-level-2-button" class="button">Nivel 2</button>
+            <button id="start-level-3-button" class="button">Nivel 3</button>
+            <button id="start-level-4-button" class="button">Nivel 4</button>
+            <button id="start-test-level-button" class="button">Nivel de Prueba</button>
+        </div>
+        <div class="instructions">
+            <p><strong>↑ ↓</strong>: Acelerar/Frenar (en plataforma)</p>
+            <p><strong>← →</strong>: Moverse (en plataforma)</p>
+            <p><strong>Espacio</strong>: Saltar (en plataforma)</p>
+            <p><strong>R</strong>: Reiniciar Nivel</p>
+        </div>
+        <p style="margin-top: 2rem;"><a href="./index.html" style="color: #fff; text-decoration: underline;">Volver al menú principal</a></p>
+    </div>
+    <div id="game-container" class="hidden">
+        <div id="ui-container">
+            <div id="speed-display">Velocidad: 0</div>
+            <div id="message-display"></div>
+        </div>
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const menuScreen = document.getElementById('menu-screen');
+        const gameContainer = document.getElementById('game-container');
+        const startLevel1Button = document.getElementById('start-level-1-button');
+        const startLevel2Button = document.getElementById('start-level-2-button');
+        const startLevel3Button = document.getElementById('start-level-3-button');
+        const startLevel4Button = document.getElementById('start-level-4-button');
+        const startTestLevelButton = document.getElementById('start-test-level-button');
+        const canvas = document.getElementById('game-canvas');
+        const speedDisplay = document.getElementById('speed-display');
+        const messageDisplay = document.getElementById('message-display');
+
+        const scene = new THREE.Scene();
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        let player, playerVelocity, playerInput, currentLevel;
+        let platforms = [];
+        let explosionParticles = [];
+        let onPlatform = false;
+        let gameState = 'menu';
+        
+        const defaultConfig = {
+            gravity: new THREE.Vector3(0, -0.015, 0),
+            fixedLateralSpeed: 0.15,
+            jumpStrength: 0.3,
+            forwardAcceleration: 0.005,
+            maxForwardSpeed: 0.6,
+        };
+
+        let gameConfig = { ...defaultConfig };
+
+        const levels = {
+            test: {
+                data: [
+                    { x: 0, y: 0, z: 0, w: 8, d: 8, h: 1 },
+                    { x: 0, y: 0, z: -15, w: 20, d: 2, h: 10 }
+                ]
+            },
+            level1: {
+                data: [
+                    { x: 0, y: 0, z: 0, w: 5, d: 10, h: 1 },
+                    { x: 0, y: 0, z: -12, w: 4, d: 7, h: 1 },
+                    { x: 4, y: 1, z: -22, w: 3, d: 7, h: 1 },
+                    { x: -4, y: 2, z: -32, w: 3, d: 7, h: 1 },
+                    { x: 0, y: 3, z: -45, w: 6, d: 6, h: 2 },
+                    { x: 0, y: 3, z: -55, w: 3, d: 5, h: 1 },
+                    { x: -6, y: 3, z: -65, w: 3, d: 5, h: 1 },
+                    { x: 0, y: 3, z: -75, w: 3, d: 3, h: 1 },
+                    { x: 0, y: 4, z: -88, w: 10, d: 10, h: 1, finish: true }
+                ]
+            },
+            level2: {
+                data: [
+                    { x: 0, y: 0, z: 0, w: 10, d: 10, h: 1 },
+                    { x: -4, y: 0, z: -15, w: 3, d: 8, h: 1 },
+                    { x: 4, y: 0, z: -15, w: 3, d: 8, h: 1 },
+                    { x: 0, y: 1, z: -28, w: 4, d: 4, h: 1.5 },
+                    { x: 0, y: 2.5, z: -38, w: 4, d: 4, h: 2 },
+                    { x: 0, y: 4, z: -55, w: 4, d: 4, h: 1 },
+                    { x: -5, y: 4, z: -65, w: 4, d: 10, h: 1 },
+                    { x: 5, y: 4.5, z: -80, w: 4, d: 10, h: 1 },
+                    { x: -5, y: 5, z: -95, w: 4, d: 10, h: 1 },
+                    { x: 0, y: 6, z: -115, w: 12, d: 12, h: 1, finish: true }
+                ]
+            },
+            level3: {
+                data: [
+                    { x: 0, y: 0, z: 0, w: 8, d: 20, h: 1 },
+                    { x: 0, y: 0, z: -30, w: 4, d: 15, h: 1 },
+                    { x: 8, y: 1, z: -50, w: 4, d: 25, h: 2 },
+                    { x: -8, y: 1, z: -50, w: 4, d: 25, h: 2 },
+                    { x: 0, y: 2, z: -85, w: 15, d: 10, h: 1 },
+                    { x: 0, y: 2, z: -110, w: 3, d: 20, h: 1 },
+                    { x: 0, y: 0, z: -140, w: 3, d: 20, h: 1, },
+                    { x: 10, y: 0, z: -170, w: 8, d: 30, h: 3 },
+                    { x: -10, y: 0, z: -170, w: 8, d: 30, h: 3 },
+                    { x: 0, y: 3, z: -210, w: 20, d: 20, h: 1, finish: true }
+                ]
+            },
+            level4: {
+                config: {
+                    forwardAcceleration: defaultConfig.forwardAcceleration,
+                    fixedLateralSpeed: defaultConfig.fixedLateralSpeed / 3,
+                    maxForwardSpeed: defaultConfig.maxForwardSpeed,
+                    jumpStrength: defaultConfig.jumpStrength,
+                    gravity: new THREE.Vector3(0, -0.005, 0),
+                },
+                data: [
+                    { x: 0, y: 0, z: 0, w: 5, d: 20, h: 1 }, 
+                    { x: 0, y: 2, z: -50, w: 4, d: 15, h: 2 }, 
+                    { x: 5, y: 0, z: -100, w: 4, d: 10, h: 1 },
+                    { x: 0, y: -2, z: -150, w: 4, d: 10, h: 1 },
+                    { x: 0, y: 0, z: -200, w: 10, d: 20, h: 1, finish: true },
+                ]
+            }
+        };
+
+        function createPlayer() {
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshStandardMaterial({ color: 0x00ffff, metalness: 0.8, roughness: 0.2 });
+            player = new THREE.Mesh(geometry, material);
+            scene.add(player);
+        }
+
+        function createPlatforms(levelData) {
+            platforms.forEach(p => scene.remove(p));
+            platforms = [];
+            levelData.forEach(data => {
+                const geometry = new THREE.BoxGeometry(data.w, data.h, data.d);
+                const color = data.finish ? 0x00ff00 : `hsl(${ (data.z * -2) % 360 }, 100%, 50%)`;
+                const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
+                const platform = new THREE.Mesh(geometry, material);
+                platform.position.set(data.x, data.y, data.z);
+                platform.isFinishPlatform = !!data.finish;
+                platforms.push(platform);
+                scene.add(platform);
+            });
+        }
+        
+        function createStars() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+            const starVertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                starVertices.push(x, y, z);
+            }
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            scene.add(new THREE.Points(starGeometry, starMaterial));
+        }
+
+        function initGame(level) {
+            currentLevel = level;
+            gameConfig = { ...defaultConfig, ...level.config };
+            
+            createPlatforms(level.data);
+            playerVelocity = new THREE.Vector3(0, 0, 0);
+            playerInput = { forward: 0, right: 0 };
+            player.position.set(0, 5, 5);
+            player.rotation.set(0, 0, 0);
+            player.visible = true;
+            
+            camera.position.set(0, 7, player.position.z + 15);
+
+            gameState = 'playing';
+            menuScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            messageDisplay.textContent = "";
+        }
+        
+        function createExplosion(position) {
+            const particleCount = 30;
+            const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffa500 });
+            for (let i = 0; i < particleCount; i++) {
+                const particleGeom = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+                const particle = new THREE.Mesh(particleGeom, particleMaterial);
+                particle.position.copy(position);
+                const velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.5,
+                    (Math.random() - 0.5) * 0.5,
+                    (Math.random() - 0.5) * 0.5
+                );
+                particle.velocity = velocity;
+                particle.lifetime = 100 + Math.random() * 100;
+                explosionParticles.push(particle);
+                scene.add(particle);
+            }
+        }
+
+        function update() {
+            if (gameState !== 'playing') return;
+
+            if (onPlatform) {
+                playerVelocity.z += playerInput.forward * gameConfig.forwardAcceleration;
+                playerVelocity.x = playerInput.right * gameConfig.fixedLateralSpeed;
+            }
+            
+            if (Math.abs(playerVelocity.z) > gameConfig.maxForwardSpeed) {
+                playerVelocity.z = Math.sign(playerVelocity.z) * gameConfig.maxForwardSpeed;
+            }
+
+            playerVelocity.add(gameConfig.gravity);
+            player.position.add(playerVelocity);
+
+            onPlatform = false;
+            let currentPlatform = null;
+
+            for (const platform of platforms) {
+                const playerBox = new THREE.Box3().setFromObject(player);
+                const platformBox = new THREE.Box3().setFromObject(platform);
+
+                if (playerBox.intersectsBox(platformBox)) {
+                    const platformTop = platform.position.y + platform.geometry.parameters.height / 2;
+                    const playerBottom = player.position.y - player.geometry.parameters.height / 2;
+                    
+                    if (playerVelocity.y < 0 && playerBottom > platform.position.y - 0.5) {
+                          player.position.y = platformTop + player.geometry.parameters.height / 2;
+                          playerVelocity.y = 0;
+                          onPlatform = true;
+                          currentPlatform = platform;
+                    } else {
+                        loseGame();
+                        return;
+                    }
+                    if (currentPlatform.isFinishPlatform) winGame();
+                    break;
+                }
+            }
+            
+            if (player.position.y < -30) {
+                initGame(currentLevel);
+            }
+
+            camera.position.z = player.position.z + 15;
+            camera.lookAt(0, 0, player.position.z);
+
+            speedDisplay.textContent = `Velocidad: ${(Math.abs(playerVelocity.z) * 100).toFixed(0)}`;
+        }
+        
+        function loseGame() {
+            if (gameState !== 'playing') return;
+            gameState = 'gameOver';
+            player.visible = false;
+            createExplosion(player.position);
+            messageDisplay.textContent = "¡DESTRUIDO!";
+            setTimeout(() => {
+                  gameState = 'menu';
+                  gameContainer.classList.add('hidden');
+                  menuScreen.classList.remove('hidden');
+            }, 2000);
+        }
+
+        function winGame() {
+            if (gameState !== 'playing') return;
+            gameState = 'gameOver';
+            messageDisplay.textContent = "¡HAS LLEGADO AL FINAL!";
+            setTimeout(() => {
+                  gameState = 'menu';
+                  gameContainer.classList.add('hidden');
+                  menuScreen.classList.remove('hidden');
+            }, 3000);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (gameState === 'playing') {
+                update();
+            }
+            
+            explosionParticles.forEach((p, index) => {
+                p.position.add(p.velocity);
+                p.lifetime--;
+                if(p.lifetime <= 0) {
+                    scene.remove(p);
+                    p.geometry.dispose();
+                    p.material.dispose();
+                    explosionParticles.splice(index, 1);
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        function handleKeyDown(event) {
+            if (gameState !== 'playing') return;
+            switch(event.key) {
+                case 'ArrowUp': playerInput.forward = -1; break;
+                case 'ArrowDown': playerInput.forward = 1; break;
+                case 'ArrowLeft': playerInput.right = -1; break;
+                case 'ArrowRight': playerInput.right = 1; break;
+                case ' ': if (onPlatform) playerVelocity.y = gameConfig.jumpStrength; break;
+                case 'r': case 'R': initGame(currentLevel); break;
+            }
+        }
+        function handleKeyUp(event) {
+            if (gameState !== 'playing') return;
+            switch(event.key) {
+                case 'ArrowUp': case 'ArrowDown': playerInput.forward = 0; break;
+                case 'ArrowLeft': case 'ArrowRight': playerInput.right = 0; break;
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        
+        startLevel1Button.addEventListener('click', () => initGame(levels.level1));
+        startLevel2Button.addEventListener('click', () => initGame(levels.level2));
+        startLevel3Button.addEventListener('click', () => initGame(levels.level3));
+        startLevel4Button.addEventListener('click', () => initGame(levels.level4));
+        startTestLevelButton.addEventListener('click', () => initGame(levels.test));
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        createPlayer();
+        createStars();
+        camera.position.set(0, 7, 15);
+        camera.lookAt(0, 0, 0);
+        animate();
+    </script>
+</body>
+</html>

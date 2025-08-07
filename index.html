@@ -3,77 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Página de Prueba</title>
+    <title>Mis Proyectos con IA</title>
     <style>
-        /* Estilos básicos para que se vea bien */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            background-color: #f4f4f4;
-            color: #333;
+            background-color: #111827; /* Fondo oscuro */
+            color: #d1d5db; /* Texto gris claro */
             margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            padding: 2rem;
         }
         .container {
-            background: #ffffff;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #1f2937; /* Contenedor un poco más claro */
             padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        header h1 {
+            color: #60a5fa; /* Azul claro */
             text-align: center;
-            max-width: 600px;
-            margin: 1rem;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
         }
-        h1 {
-            color: #0366d6; /* Un azul similar al de GitHub */
-        }
-        p {
+        header p {
+            text-align: center;
             font-size: 1.1rem;
+            color: #9ca3af; /* Gris más suave */
+            margin-bottom: 2.5rem;
         }
-        a {
-            color: #0366d6;
+        .project-list h2 {
+            color: #a5b4fc; /* Lavanda */
+            border-bottom: 2px solid #374151;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .project-card {
+            background-color: #374151; /* Color de tarjeta */
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
+        }
+        .project-card h3 {
+            margin-top: 0;
+            color: #c7d2fe; /* Título de proyecto */
+        }
+        .project-card p {
+            color: #9ca3af;
+        }
+        .play-button {
+            display: inline-block;
+            background-color: #60a5fa;
+            color: #111827;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
             text-decoration: none;
             font-weight: bold;
+            transition: background-color 0.2s ease;
         }
-        a:hover {
-            text-decoration: underline;
+        .play-button:hover {
+            background-color: #93c5fd; /* Azul más claro al pasar el mouse */
         }
         footer {
-            margin-top: 2rem;
-            font-size: 0.8rem;
-            color: #666;
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+            color: #4b5563; /* Color de footer sutil */
         }
     </style>
 </head>
 <body>
-
     <div class="container">
         <header>
-            <h1>¡Mi Página Web Está en Línea! 🚀</h1>
+            <h1>Mis Proyectos con IA 🤖</h1>
+            <p>
+                ¡Bienvenido! En esta página encontrarás una colección de pequeños juegos y experimentos que he desarrollado con la ayuda de modelos de IA como GPT.
+            </p>
         </header>
-        
-        <main>
-            <p>
-                ¡Felicidades! Si estás viendo esto, significa que has publicado correctamente
-                tu primera página web utilizando <strong>GitHub Pages</strong>.
-            </p>
-            <p>
-                Puedes editar este archivo <code>index.html</code> y subir los cambios a tu repositorio
-                para actualizar el contenido cuando quieras.
-            </p>
-            <p>
-                Visita mi perfil de GitHub <a href="https://github.com/tu-usuario-de-github" target="_blank" rel="noopener noreferrer">aquí</a>.
-                (¡No olvides cambiar el enlace por tu usuario!)
-            </p>
-        </main>
 
+        <section class="project-list">
+            <h2>Lista de Proyectos</h2>
+
+            <div class="project-card">
+                <h3>Camino Estelar (3D)</h3>
+                <p>
+                    Un juego de plataformas en 3D con una estética futurista. Controla un cubo a través de un camino de plataformas flotantes en el espacio, salta y evita caer al vacío. Creado con <strong>Three.js</strong>.
+                </p>
+                <a href="./camino-estelar.html" class="play-button">Jugar Ahora &rarr;</a>
+            </div>
+
+            <div class="project-card">
+                <h3>Plataformas Dinámico (2D)</h3>
+                <p>
+                    Un clásico juego de plataformas en 2D con físicas avanzadas. Supera niveles con saltos precisos, rebotes en paredes y la habilidad de doble salto para alcanzar la meta. Creado con <strong>Canvas API</strong> de HTML5.
+                </p>
+                <a href="./plataformas-2d.html" class="play-button">Jugar Ahora &rarr;</a>
+            </div>
+        </section>
+        
         <footer>
-            <p>&copy; 2025 - Creado con la ayuda de la IA.</p>
+            <p>&copy; 2025 - Portafolio de Proyectos.</p>
         </footer>
     </div>
-
 </body>
 </html>
